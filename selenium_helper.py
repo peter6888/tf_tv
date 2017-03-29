@@ -61,6 +61,20 @@ class selenium_helper(unittest.TestCase):
         self.version = c['version'].strip('\r\n')
         self.driver = None
 
+    def take_hdmi_capture(self, feature=""):
+        """
+        Use command line ffmpeg to take screen capture through the HDMI capture card
+        The command line example in debugging machine is C:\CCVerificationEngine\CCATEngine\Tools\ffmpeg\ffmpeg.exe -f decklink -i "Intensity Pro@15" -pix_fmt rgba -f image2 -t 0.03 "d:\\%d.png"
+        :param feature: str - the feature name and subfolder name
+        :return: 
+        """
+        take_capture_command = 'C:\\CCVerificationEngine\\CCATEngine\\Tools\\ffmpeg\\ffmpeg.exe -f decklink -i "Intensity Pro@15" -pix_fmt rgba -f image2 -t 0.03 "d:\\ML\\{}\\{}_%d.png"'.format(feature, time.strftime('_%d_%m_%Y_%H_%M_%S'))
+        print(take_capture_command)
+        cmd = WindowsCommand.Command(take_capture_command)
+        cmd.run(timeout=10)
+        return take_capture_command
+
+
     def take_screenshot(self, filename=None, insubfolder=""):
         """
         Use command line camera tool to capture TV screen
