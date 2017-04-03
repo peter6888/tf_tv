@@ -13,47 +13,38 @@ from os import mkdir
 from shutil import copyfile
 from os.path import isfile, join
 
-varPath = 'D:\\ML\\LoadingOnNow\\'
-destDir = "scanned"
-imgFiles = [f for f in listdir(varPath) if isfile(join(varPath, f))]
+varPath = 'D:\\ML\\l2\\'
+#destDir = "scanned"
+def images_predictions(imagePath, labels_file="D:\\ML\\tf_tv\\tf_files\\retrained_labels.txt", graph_file="D:\\ML\\tf_tv\\tf_files\\retrained_graph.pb"):
+    imgFiles = [f for f in listdir(imagePath) if isfile(join(imagePath, f))]
 
-# Loads label file, strips off carriage return
-label_lines = [line.rstrip() for line
-               in tf.gfile.GFile("D:\\ML\\tf_files\\retrained_labels.txt")]
+    # Loads label file, strips off carriage return
+    label_lines = [line.rstrip() for line
+                   in tf.gfile.GFile(labels_file)]
 
-# Unpersists graph from file
-with tf.gfile.FastGFile("D:\\ML\\tf_files\\retrained_graph.pb", 'rb') as f:
-    graph_def = tf.GraphDef()
-    graph_def.ParseFromString(f.read())
-    _ = tf.import_graph_def(graph_def, name='')
+    ret = []
+    # Unpersists graph from file
+    with tf.gfile.FastGFile(graph_file, 'rb') as f:
+        graph_def = tf.GraphDef()
+        graph_def.ParseFromString(f.read())
+        _ = tf.import_graph_def(graph_def, name='')
 
-with tf.Session() as sess:
-    # Feed the image_data as input to the graph and get first prediction
-    softmax_tensor = sess.graph.get_tensor_by_name('final_result:0')
-    # try:
-    #    shutil.rmtree(destDir)
-    # except:
-    #    None
-    # mkdir ('scanned')
+    with tf.Session() as sess:
+        # Feed the image_data as input to the graph and get first prediction
+        softmax_tensor = sess.graph.get_tensor_by_name('final_result:0')
 
-    for imageFile in imgFiles:
-        image_data = tf.gfile.FastGFile(join(varPath,imageFile), 'rb').read()
+        for imageFile in imgFiles:
+            f_name, ext = os.path.splitext(imageFile)
+            if ext != '.jpg' or ext != '.JPG':
+                continue
+            image_data = tf.gfile.FastGFile(join(imagePath,imageFile), 'rb').read()
 
-        print(join(varPath,imageFile))
-        predictions = sess.run(softmax_tensor, \
-                               {'DecodeJpeg/contents:0': image_data})
+            print(join(varPath,imageFile))
+            predictions = sess.run(softmax_tensor, \
+                                   {'DecodeJpeg/contents:0': image_data})
 
-        # Sort to show labels of first prediction in order of confidence
-        top_k = predictions[0].argsort()[-len(predictions[0]):][::-1]
-        firstElt = top_k[0];
+            ret.append((imageFile, predictions))
 
-        #newFileName = label_lines[firstElt] + "--" + str(predictions[0][firstElt])[2:7] + ".jpg"
-        #print(newFileName)
-        #copyfile(join(varPath,imageFile), join(destDir,newFileName))
+    return ret
 
-        for node_id in top_k:
-            human_string = label_lines[node_id]
-            score = predictions[0][node_id]
-            # print (node_id)
-            print('%s (score = %.5f)' % (human_string, score))
-
+#images_predictions(varPath)

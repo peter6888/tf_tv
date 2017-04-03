@@ -33,7 +33,10 @@ def to_onnow():
     v.sendkey("EXIT")
     time.sleep(seconds_pageload)
     v.sendkey("GUIDE")
-    v.take_hdmi_capture("LoadingOnNow",30)
+    time.sleep(4)
+    v.take_hdmi_capture("LoadingOnNow_Staging",20)
+    v.sendkey("RIGHT")
+    v.take_hdmi_capture("LoadingFullGuide_Staging", 10)
 to_onnow()
 v.deinit()
 
