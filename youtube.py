@@ -5,41 +5,62 @@ import json
 
 from selenium import webdriver
 from selenium.common import exceptions
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.action_chains import ActionChains
 
-class selenium_helper(unittest.TestCase):
-    _debugPort = 9999
-    driver = None
-    def init(self):
-        self.get_stb_config()
-        self.launchOperaDriver()
-        print("----selenium_helper init----")
-        self.driver = self.get_driver(self.stbip)
-        handles = self.driver.window_handles
-        self.driver.switch_to.window(handles[1])
+import hdmi_capture
 
-    def deinit(self):
-        if self.driver:
-            self.driver.quit()
+class test_youtube(unittest.TestCase):
+    def __init__(self, methodName='runTest'):
+        return super().__init__(methodName)
 
-    def sendkey(self, keyname):
-        keymap = {"GUIDE":Keys.NUMPAD6, "CHANNELUP": Keys.PAGE_UP, "CHANNELDOWN": Keys.PAGE_DOWN, "BACK": Keys.BACK_SPACE,
-                  "UP":Keys.ARROW_UP, "DOWN":Keys.ARROW_DOWN, "LEFT":Keys.ARROW_LEFT, "RIGHT":Keys.ARROW_RIGHT,
-                  "OK":Keys.ENTER, "INFO":Keys.HOME, "RECORD":Keys.NUMPAD9, "PAUSEPLAY":Keys.DIVIDE, "STOP":Keys.END,
-                  "OPTIONS":Keys.NUMPAD5, "MENU":Keys.NUMPAD7, "SEARCH":Keys.NUMPAD1, "LAST":Keys.NUMPAD2, "APPS":Keys.NUMPAD3, "ONDEMAND":Keys.NUMPAD4,
-                  "POWER":Keys.F7, "MUTE":Keys.F8, "REWIND":Keys.NUMPAD0, "FF":Keys.MULTIPLY, "REPLAY":Keys.DECIMAL, "SKIP":Keys.EQUALS,
-                  "VOLUMEUP":Keys.ADD, "VOLUMEDOWN":Keys.SUBTRACT}
-        if(keyname.upper()=="EXIT"):
-            print("Exit to full screen")
-            exitScript = "var windowEx = window;         windowEx.mstv.playback.ViewModel.backToLiveTV();"
-            self.driver.execute_script(exitScript)
-        else:
-            print("sending key:{}".format(keyname))
-            ActionChains(self.driver).send_keys(keymap[keyname.upper()]).perform()
+    @classmethod
+    def setUpClass(cls):
+        cls.get_stb_config(cls)
+        test_youtube.launchOperaDriver(cls)
+        print("----setUpClass----")
+
+    @classmethod
+    def tearDownClass(cls):
+        if cls.driver:
+            cls.driver.quit()
+        print("----tearDownClass-----")
+
+    def test_launch_yt_and_hdmi_capture(self):
+        self.driver = self.verify_launched_try_get_driver(self.stbip)
+        hdmi_capture.take("D:\\YouTube", 10) # time.sleep(10)
+
+     # <editor-fold desc="common private functions">
+    def playback_video_vid(self, vid):
+        """
+        :param vid: the YouTube Video ID, such as '9bZkp7q19f0' for PSY - GANGNAM STYLE
+        :return: None
+        """
+        self.driver = self.verify_launched_try_get_driver(self.stbip)
+        self.driver.get(
+            "https://www.youtube.com/tv/?env_isVideoInfoVisible=1&forced_experiments=9450477&fps=1&env_forceFullAnimation=1#/watch/video/control?v={}".format(vid))
+        return self.driver
+
+    def verify_launched_try_get_driver(self, stbip, debugsh=False):
+        if not hasattr(self,'driver') or not self.driver:
+            enable_debugging_port = 'upload_chmod.xml' if not debugsh else 'upload_chmod_debugsh.xml'
+            c1 = WindowsCommand.Command(self.get_companion_automation_command(stbip, enable_debugging_port))
+            c1.run(timeout=10)
+        return self.launch_youtube_get_driver_common(stbip)
+
+    def launch_youtube_get_driver(self, stbip, launch_youtube='yt.xml'):
+        c2 = WindowsCommand.Command(self.get_companion_automation_command(stbip, launch_youtube))
+        c2.run(timeout=10)
+        return self.get_driver(stbip)
+
+    def launch_youtube_get_driver_common(self, stbip):
+        return self.launch_youtube_get_driver(stbip, launch_youtube='yt_plain.xml')
+
+    def exit_to_mr(self, stbip):
+        exit2mr = 'exit.xml'
+        c = WindowsCommand.Command(self.get_companion_automation_command(stbip, exit2mr))
+        c.run(timeout=10)
 
     def get_driver(self,stbip):
-        c = {'chromeOptions': {'debuggerAddress': '{}:{}'.format(stbip, self._debugPort)}}
+        c = {'chromeOptions': {'debuggerAddress': '{}:9222'.format(stbip)}}
         self.driver = webdriver.Remote("http://localhost:9515", c)
         return self.driver
 
@@ -61,19 +82,8 @@ class selenium_helper(unittest.TestCase):
         self.version = c['version'].strip('\r\n')
         self.driver = None
 
-    def take_hdmi_capture(self, imagefolder="", seconds=0.03):
-        """
-        Use command line ffmpeg to take screen capture through the HDMI capture card
-        The command line example in debugging machine is C:\CCVerificationEngine\CCATEngine\Tools\ffmpeg\ffmpeg.exe -f decklink -i "Intensity Pro@15" -pix_fmt rgba -f image2 -t 0.03 "d:\\%d.png"
-        :param feature: str - the feature name and subfolder name
-        :return: 
-        """
-        take_capture_command = 'C:\\CCVerificationEngine\\CCATEngine\\Tools\\ffmpeg\\ffmpeg.exe -f decklink -i "Intensity Pro@15" -pix_fmt rgba -f image2 -t {} "{}\\{}_%04d.jpg"'.format(seconds, imagefolder, time.strftime('%d_%m_%Y_%H_%M_%S'))
-        print(take_capture_command)
-        cmd = WindowsCommand.Command(take_capture_command)
-        cmd.run(timeout=10)
-        return take_capture_command
-
+    def get_companion_automation_command(self, stbip, command):
+        return "CompanionAutomation.exe -ipaddress {} -start -quit {}".format(stbip, command)
 
     def take_screenshot(self, filename=None, insubfolder=""):
         """
@@ -126,3 +136,4 @@ class selenium_helper(unittest.TestCase):
         ret = cmd.run(timeout=10)
         time.sleep(60*10)
         return ret
+    # </editor-fold>

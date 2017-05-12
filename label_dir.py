@@ -10,7 +10,6 @@ import os
 import shutil
 from os import listdir
 from os import mkdir
-from shutil import copyfile
 from os.path import isfile, join
 
 varPath = 'D:\\ML\\l2\\'
@@ -35,11 +34,12 @@ def images_predictions(imagePath, labels_file="D:\\ML\\tf_tv\\tf_files\\retraine
 
         for imageFile in imgFiles:
             f_name, ext = os.path.splitext(imageFile)
-            if ext != '.jpg' or ext != '.JPG':
+            if ext != '.jpg' and ext != '.JPG':
+                print('skip file:' + imageFile)
                 continue
             image_data = tf.gfile.FastGFile(join(imagePath,imageFile), 'rb').read()
 
-            print(join(varPath,imageFile))
+            print(join(imagePath,imageFile))
             predictions = sess.run(softmax_tensor, \
                                    {'DecodeJpeg/contents:0': image_data})
 
