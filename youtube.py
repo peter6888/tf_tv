@@ -3,6 +3,13 @@ import time
 import WindowsCommand
 import json
 
+from os import mkdir
+from os import path
+from os import listdir
+from os.path import isfile, join
+
+from shutil import copyfile
+
 from selenium import webdriver
 from selenium.common import exceptions
 
@@ -25,8 +32,40 @@ class test_youtube(unittest.TestCase):
         print("----tearDownClass-----")
 
     def test_launch_yt_and_hdmi_capture(self):
-        self.driver = self.verify_launched_try_get_driver(self.stbip)
-        hdmi_capture.take("D:\\YouTube", 10) # time.sleep(10)
+        for i in range(1,1000):
+            self.driver = self.verify_launched_try_get_driver(self.stbip)
+            save_to_folder = "D:\\YouTube\\{:04d}".format(i)
+            if not path.exists(save_to_folder):
+                mkdir(save_to_folder)
+            hdmi_capture.take(save_to_folder, 10) # time.sleep(10)
+
+    def test_classify(self):
+        """
+        Manully classify images and move to folders
+        :return: 
+        """
+        indexs = [10, 100, 300, 440, 500]
+        classNames = ["WhiteScreen", "Logo", "SpinLoading", "TextLoaded", "ImageLoaded"]
+        for c in classNames:
+            c_folder = "D:\\YouTube\\{}".format(c)
+            if not path.exists(c_folder):
+                print("{} not exist, create it.".format(c_folder))
+                mkdir(c_folder)
+
+        for i in range(1,100):
+            savedFolder = "D:\\YouTube\\{:04d}".format(i)
+            if not path.exists(savedFolder):
+                continue
+            print("Try to copy images from {}".format(savedFolder))
+            files = [f for f in listdir(savedFolder) if isfile(join(savedFolder, f))]
+            if len(files) < indexs[-1]:
+                print("Not able to get file from {}".format(savedFolder))
+                continue
+            for i, f in enumerate(indexs):
+                from_file = join(savedFolder, files[f])
+                to_file = join("D:\\YouTube\\{}".format(classNames[i]), files[f])
+                print("Copying {} to {}".format(from_file, to_file))
+                copyfile(from_file, to_file)
 
      # <editor-fold desc="common private functions">
     def playback_video_vid(self, vid):
