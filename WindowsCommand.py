@@ -5,7 +5,7 @@ class Command(object):
         self.cmd = cmd
         self.process = None
 
-    def run(self, timeout):
+    def run(self, timeout, waitTillFinish=True):
         def target():
             #print('Thread started')
             self.process = subprocess.Popen(self.cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -14,6 +14,10 @@ class Command(object):
         self.ret = ""
         thread = threading.Thread(target=target)
         thread.start()
+
+        if not waitTillFinish:
+            print("subprocess started, will finish by itself")
+            return
 
         thread.join(timeout)
         if thread.is_alive():
