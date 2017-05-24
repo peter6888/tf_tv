@@ -51,32 +51,51 @@ Final test accuracy = 100.0% (N=892)
 Converted 2 variables to const ops.
         :return: 
         """
-        for i in range(1,10):
+        for i in range(1,10000):
             self.driver = self.verify_launched_try_get_driver(self.stbip)
-            save_to_folder = self._imageFolder + "{:05d}".format(i)
+            save_to_folder = self._imageFolder + "{:04d}".format(i)
             if not path.exists(save_to_folder):
                 mkdir(save_to_folder)
             hdmi_capture.take(save_to_folder, 10) # time.sleep(10)
             print(i)
 
     def test_hdmi_capture_actions(self):
-        self.driver = self.verify_launched_try_get_driver(self.stbip)
-        save_to_folder = self._imageFolder + "actions"
-        if not path.exists(save_to_folder):
-            mkdir(save_to_folder)
-        logger = hdmi_capture.setup_custom_logger('YouTube:')
-        logger.info("sleep for wait YouTube Launch")
-        time.sleep(7)
-        logger.info("Start capture.")
-        hdmi_capture.take(save_to_folder, 11, waitTillFinish=False)
         for i in range(5):
-            time.sleep(1)
-            logger.info("Keys.ARROW_RIGHT")
-            ActionChains(self.driver).send_keys(Keys.ARROW_RIGHT).perform()
-        for i in range(5):
-            time.sleep(1)
-            logger.info("Keys.ARROW_DOWN")
-            ActionChains(self.driver).send_keys(Keys.ARROW_DOWN).perform()
+            save_to_folder = self._imageFolder + "position{:02d}".format(i)
+            if not path.exists(save_to_folder):
+                mkdir(save_to_folder)
+
+        for i in range(200):
+            self.driver = self.verify_launched_try_get_driver(self.stbip)
+            #save_to_folder = self._imageFolder + "actions{:02d}".format(i)
+            #if not path.exists(save_to_folder):
+            #    mkdir(save_to_folder)
+            logger = hdmi_capture.setup_custom_logger('YouTube:')
+            logger.info("sleep for wait YouTube Launch")
+            time.sleep(7)
+            logger.info("Start capture.")
+            #hdmi_capture.take(save_to_folder, 13*(7+5*(1+3*1))+1, waitTillFinish=False)
+            for tabs in range(13):
+                for _ in range(5):
+                    #time.sleep(1)
+                    logger.info("Keys.ARROW_DOWN")
+                    ActionChains(self.driver).send_keys(Keys.ARROW_DOWN).perform()
+                    for i in range(3):
+                        time.sleep(1)
+                        to_folder = self._imageFolder + "position{:02d}".format(i)
+                        hdmi_capture.take(to_folder, seconds=0.015)
+                        logger.info("Keys.ARROW_RIGHT")
+                        ActionChains(self.driver).send_keys(Keys.ARROW_RIGHT).perform()
+                    time.sleep(1)
+                    hdmi_capture.take(self._imageFolder + "position{:02d}".format(3))
+                time.sleep(1)
+                ActionChains(self.driver).send_keys(Keys.ESCAPE).perform()
+                time.sleep(1)
+                ActionChains(self.driver).send_keys(Keys.RIGHT).perform()
+                time.sleep(5)
+            #time.sleep(1)
+            #ActionChains(self.driver).send_keys(Keys.ENTER).perform()
+            #time.sleep(5)
 
     def test_classify(self):
         """
@@ -214,4 +233,5 @@ Converted 2 variables to const ops.
         ret = cmd.run(timeout=10)
         time.sleep(60*10)
         return ret
+
     # </editor-fold>
