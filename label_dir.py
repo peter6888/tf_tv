@@ -202,4 +202,18 @@ def meature_performance(rootFolder, epsilon=0.1, batchsize=5, initbatch=10):
                 if np.abs(current_perf-batch_perf) < epsilon:
                     return (current_perf, performances)
 
+def meature_performance_all(rootFolder):
+    subfolders = [join(rootFolder, f) for f in listdir(rootFolder) if isdir(join(rootFolder, f))]
+    sess, softmax_tensor = get_session_softmaxtensor()
+    performances = []
+    for i, folder in enumerate(subfolders):
+        if i > 2600:
+            break
+        perf = get_performance(folder, sess, softmax_tensor)
+        if perf==0:
+            print('Not able to get performance value for {}'.format(folder))
+            continue
+        performances.append(perf)
+
+    return (np.median(performances) / 60.0, performances)
 #images_predictions(varPath)
