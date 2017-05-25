@@ -57,9 +57,10 @@ def images_predictions(imagePath, binarySearchType=None, labels="retrained_label
 
     return ret
 
+type_ord = [3, 4, 2, 0, 1] # the loading orders of types [0]->[1]->[2]->[3]->[4]
+type_order_name = ['textloaded', 'imageloaded', 'spinloading', 'whitescreen', 'logo']
 
-def binarySearch(binarySearchType, imagePath, imgFiles, ret, sess, softmax_tensor):
-    type_ord = [4, 0, 1, 3, 2]
+def binarySearch(binarySearchType, imagePath, imgFiles, sess, softmax_tensor):
     target_index = type_ord.index(binarySearchType)
     s, e = 0, len(imgFiles) - 1
     if e < 400:
@@ -87,14 +88,14 @@ def binarySearch(binarySearchType, imagePath, imgFiles, ret, sess, softmax_tenso
         image_data = tf.gfile.FastGFile(join(imagePath, imgFiles[m]), 'rb').read()
         m_type = label_image(sess, softmax_tensor, image_data)
         if m_type == binarySearchType:
-            return join(imagePath, imgFiles[m])
+            return (join(imagePath, imgFiles[m]), m)
         m_index = type_ord.index(m_type)
-        print(m_index, m_type, imgFiles[m])
+        print(m, type_order_name[m_type], imgFiles[m])
         if m_index < target_index:
             s = m + 1
         else:  # inf m_index > target_index
             e = m - 1
-    return ret
+    return None
 
 
 def label_image(sess, softmax_tensor, image_data):
@@ -104,26 +105,101 @@ def label_image(sess, softmax_tensor, image_data):
 
 def pick_one_by_subfolder(rootFolder, targetType=3, moveto='D:\\TrainingData\\TextLoaded'):
     subfolders = [join(rootFolder,f) for f in listdir(rootFolder) if isdir(join(rootFolder,f))]
+    sess, softmax_tensor = get_session_softmaxtensor()
+
+    ret = []
+    for sf in subfolders:
+        print(sf)
+        imgFiles    = [f for f in listdir(sf) if isfile(join(sf, f))]
+        v, _ = binarySearch(3, sf, imgFiles, sess, softmax_tensor)
+        print(v)
+        ret.append(v)
+
+    return ret
+
+def get_session_softmaxtensor():
     labels = "retrained_labels.txt"
     graph = "retrained_graph.pb"
     labels_file = join(modelPath, labels)
-    graph_file  = join(modelPath, graph)
-        # Unpersists graph from file
+    graph_file = join(modelPath, graph)
+    # Unpersists graph from file
     with tf.gfile.FastGFile(graph_file, 'rb') as f:
         graph_def = tf.GraphDef()
         graph_def.ParseFromString(f.read())
         _ = tf.import_graph_def(graph_def, name='')
     sess = tf.Session()
-
     # tf.Session() as sess:
-        # Feed the image_data as input to the graph and get first prediction
+    # Feed the image_data as input to the graph and get first prediction
     softmax_tensor = sess.graph.get_tensor_by_name('final_result:0')
+    return sess, softmax_tensor
 
-    for sf in subfolders:
-        print(sf)
-        ret = []
-        imgFiles    = [f for f in listdir(sf) if isfile(join(sf, f))]
-        v = binarySearch(3, sf, imgFiles, ret, sess, softmax_tensor)
-        print(v)
+def get_performance(folder, session, softmax_tensor):
+    ret = np.random.randint(200, 300)
+    startframe, endframe = 0, 0
+    imgFiles = [f for f in listdir(folder) if isfile(join(folder, f))]
+    for searchLogoFrame in imgFiles:
+        m_f_name, m_ext = os.path.splitext(searchLogoFrame)
+        if m_ext != '.jpg' and m_ext != '.JPG':
+            continue
+        image_data = tf.gfile.FastGFile(join(folder, searchLogoFrame), 'rb').read()
+        m_type = label_image(session, softmax_tensor, image_data)
+        if type_ord.index(m_type)==1: #The Logo frame
+            startframe = get_frame_number(searchLogoFrame)
+            print('Logo frame is at {}'.format(startframe))
+            break
+
+    if startframe==0:
+        return 0 # error get performance
+
+    textLoadedFrame = binarySearch(0, folder, imgFiles, session, softmax_tensor)
+    print(textLoadedFrame)
+    if textLoadedFrame==None:
+        return 0 # error get performance
+
+    _, frame_index = textLoadedFrame
+    for i in range(frame_index, len(imgFiles)):
+        m_f_name, m_ext = os.path.splitext(imgFiles[i])
+        if m_ext != '.jpg' and m_ext != '.JPG':
+            continue
+        image_data = tf.gfile.FastGFile(join(folder, imgFiles[i]), 'rb').read()
+        m_type = label_image(session, softmax_tensor, image_data)
+        if type_ord.index(m_type) == 4:  # The ImageLoaded frame
+            endframe = get_frame_number(imgFiles[i])
+            print('First Image Loaded Frame is {}'.format(endframe))
+            break
+
+    ret = endframe - startframe
+    print("{} performance is {}".format(folder, ret))
+    return ret
+
+'''
+19_05_2017_15_08_16_0421.jpg --> 421
+'''
+def get_frame_number(filename):
+    return int(filename[-8:-4])
+'''
+Meature the performance, based on epsilon and batch size. 
+i.e. if the batch's 'batch_loading' in range of loading time ['loading' - 0.1, 'loading' + 0.1]
+'''
+def meature_performance(rootFolder, epsilon=0.1, batchsize=5, initbatch=10):
+    subfolders = [join(rootFolder, f) for f in listdir(rootFolder) if isdir(join(rootFolder, f))]
+    sess, softmax_tensor = get_session_softmaxtensor()
+    performances = []
+    i = 0
+    for folder in subfolders:
+        perf = get_performance(folder, sess, softmax_tensor)
+        if perf==0:
+            print('Not able to get performance value for {}'.format(folder))
+            continue
+        i = i + 1
+        performances.append(perf)
+        if i >= initbatch:
+            if i%batchsize==0:
+                current_perf = np.median(performances) / 60.0
+                batch_perf = np.median(performances[-5:]) / 60.0
+                print('------------------')
+                print('--Total Perf:{}------Batch Perf:{}-----'.format(current_perf, batch_perf))
+                if np.abs(current_perf-batch_perf) < epsilon:
+                    return (current_perf, performances)
 
 #images_predictions(varPath)
