@@ -1,6 +1,7 @@
 import unittest
 import time
 import WindowsCommand
+import label_dir
 import json
 
 from os import mkdir
@@ -9,11 +10,14 @@ from os import listdir
 from os.path import isfile, join
 
 from shutil import copyfile
+import random
 
 from selenium import webdriver
 from selenium.common import exceptions
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
+
+import tensorflow as tf
 
 import hdmi_capture
 
@@ -58,6 +62,42 @@ Converted 2 variables to const ops.
                 mkdir(save_to_folder)
             hdmi_capture.take(save_to_folder, 10) # time.sleep(10)
             print(i)
+
+    def test_launch_yt_and_report(self):
+        working_folder = self._imageFolder + "Test{:04d}".format(random.randint(1000,10000))
+        if not path.exists(working_folder):
+            mkdir(working_folder)
+        self.driver = self.verify_launched_try_get_driver(self.stbip)
+        hdmi_capture.take(working_folder, 10)
+        print('capture done')
+
+        sess, softmax_tensor = label_dir.get_session_softmaxtensor()
+        imgFiles = [f for f in listdir(working_folder) if isfile(join(working_folder, f))]
+        types = []
+        keyframes = [] #(typeid, imagepath)
+
+        last_type = -1
+        for img in imgFiles:
+            image_data = tf.gfile.FastGFile(join(working_folder, img), 'rb').read()
+            m_type = label_dir.label_image(sess, softmax_tensor, image_data)
+            types.append(m_type)
+            if m_type != last_type:
+                print('New Type Of Image on {}'.format(img))
+                last_type = m_type
+                keyframes.append((m_type, img))
+
+        # copy key frames to report folder
+        reportFolder = join(working_folder, "report")
+        if not path.exists(reportFolder):
+            mkdir(reportFolder)
+
+        for _, img in keyframes:
+            copyfile(join(working_folder, img), join(reportFolder, img))
+
+        htmlstr = self.GenerateReportPage(keyframes)
+
+        with open(join(reportFolder, 'index.html'), 'w') as html_file:
+            html_file.write(htmlstr)
 
     def test_hdmi_capture_actions(self):
         for i in range(5):
@@ -125,7 +165,26 @@ Converted 2 variables to const ops.
                 print("Copying {} to {}".format(from_file, to_file))
                 copyfile(from_file, to_file)
 
+    def test_GenerateReportPage(self):
+        keyframes = [(1,"1234.jpg"), (2, "2341.jpg"), (0, "7777.jpg"), (4, "8888.jpg")]
+        str = self.GenerateReportPage(keyframes)
+        print(str)
+
      # <editor-fold desc="common private functions">
+    def GenerateReportPage(self, Keyframes):
+        html = '<html><body><table><tr><td>image</td><td>page name</td><td>took time</td></tr>'
+        #pages = ['Loading OnNow', 'OnNow Guide', 'Loading Full Guide', 'Full Guide']
+        framerate = 60.0
+        for typeId, frame in Keyframes:
+            pageName = label_dir.type_order_name[label_dir.type_ord.index(typeId)]
+            html += self.append_line(frame, pageName, label_dir.get_frame_number(frame) / framerate)
+        html += '</table></body></html>'
+        return html
+
+    def append_line(self, imageFile, pagename, tooktime):
+        return '<tr><td><image width=\'400\' src=\'{}\'/></td><td>{}</td><td>{:.2f}</td></tr>'.format(
+            imageFile, pagename, tooktime)
+
     def playback_video_vid(self, vid):
         """
         :param vid: the YouTube Video ID, such as '9bZkp7q19f0' for PSY - GANGNAM STYLE

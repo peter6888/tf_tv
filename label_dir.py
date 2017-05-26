@@ -61,6 +61,20 @@ type_ord = [3, 4, 2, 0, 1] # the loading orders of types [0]->[1]->[2]->[3]->[4]
 type_order_name = ['textloaded', 'imageloaded', 'spinloading', 'whitescreen', 'logo']
 
 def binarySearch(binarySearchType, imagePath, imgFiles, sess, softmax_tensor):
+    '''
+    Use binary search to go through images in folder to get specified image
+    
+    Arguments:
+        binarySearchType: type order is defined in type_ord
+        imagePath: the path for the images
+        imgFiles: list of image files (without path)
+        sess: Tensorflow session
+        softmax_tensor: Tensorflow tensor for softmax
+        
+    Returns:
+        None: not found
+        (imagefiles, index): the full path filename of located image, the index in the imgFiles
+    '''
     target_index = type_ord.index(binarySearchType)
     s, e = 0, len(imgFiles) - 1
     if e < 400:
@@ -216,4 +230,4 @@ def meature_performance_all(rootFolder):
         performances.append(perf)
 
     return (np.median(performances) / 60.0, performances)
-#images_predictions(varPath)
+
