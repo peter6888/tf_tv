@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<Script>
-<Action type="settrace" value="false" />
-<Companion value="op=remotekey&amp;key=exit"/>
-<Action type="timer" op="wait" value="5000"/>
-<Companion value="op=open&amp;url=extapp:youtube?args=v%253D9bZkp7q19f0%2526t%253D1m20s"/>
-</Script>
