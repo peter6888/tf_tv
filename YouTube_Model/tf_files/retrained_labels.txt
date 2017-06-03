@@ -1,0 +1,5 @@
+textloaded
+imageloaded
+spinloading
+whitescreen
+logo

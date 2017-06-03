@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Script>
+<Action type="settrace" value="false" />
+<Companion value="op=remotekey&amp;key=exit"/>
+<Action type="timer" op="wait" value="5000"/>
+</Script>
