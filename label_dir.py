@@ -57,8 +57,9 @@ def images_predictions(imagePath, binarySearchType=None, labels="retrained_label
 
     return ret
 
-type_ord = [3, 4, 2, 0, 1] # the loading orders of types [0]->[1]->[2]->[3]->[4]
+type_ord = [4, 0, 3, 1, 2] # the loading orders of types type_ord[0]->type_ord[1]->type_ord[2]->type_ord[3]->type_ord[4]
 type_order_name = ['textloaded', 'imageloaded', 'spinloading', 'whitescreen', 'logo']
+page_names = ['whitescreen', 'logo', 'spinloading', 'textloaded', 'imageloaded']
 
 def binarySearch(binarySearchType, imagePath, imgFiles, sess, softmax_tensor):
     '''

@@ -3,6 +3,7 @@ import time
 import WindowsCommand
 import label_dir
 import json
+import webbrowser
 
 from os import mkdir
 from os import path
@@ -96,8 +97,13 @@ Converted 2 variables to const ops.
 
         htmlstr = self.GenerateReportPage(keyframes)
 
-        with open(join(reportFolder, 'index.html'), 'w') as html_file:
+        reportpagefilename =  join(reportFolder, 'index.html')
+        print("Generate reporting page at {}".format(reportpagefilename))
+        with open(reportpagefilename, 'w') as html_file:
             html_file.write(htmlstr)
+
+        print("Opening browser view the report page.")
+        webbrowser.get("C:/Program Files (x86)/Google/Chrome/Application/chrome.exe %s").open(reportpagefilename)
 
     def test_hdmi_capture_actions(self):
         for i in range(5):
@@ -176,7 +182,7 @@ Converted 2 variables to const ops.
         #pages = ['Loading OnNow', 'OnNow Guide', 'Loading Full Guide', 'Full Guide']
         framerate = 60.0
         for typeId, frame in Keyframes:
-            pageName = label_dir.type_order_name[label_dir.type_ord.index(typeId)]
+            pageName = label_dir.page_names[label_dir.type_ord.index(typeId)]
             html += self.append_line(frame, pageName, label_dir.get_frame_number(frame) / framerate)
         html += '</table></body></html>'
         return html
