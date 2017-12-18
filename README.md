@@ -5,14 +5,14 @@ Automated Smart TV UI Performance Testing with Visual Recognition ([paper](http:
 
 Major files.
 
-models.ipynb
+### models.ipynb
 
 >>> Different models train and test the images. 
 
-PreprocessImages.ipynb
+### PreprocessImages.ipynb
 
 >>> Pre-process the catpured images.
 
-*.py files
+### *.py files
 
 >>> Python codes for capture and drive STB launching YouTube. Using OperaDriver and Selenium, which are non-Machine-Learning related
